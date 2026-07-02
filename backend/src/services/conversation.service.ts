@@ -20,6 +20,7 @@ const HELP_MESSAGE = `💁‍♀️ ${BOT_NAME} - เลขาส่วนตั
 • "งานนี้เสร็จแล้ว" → ทำเครื่องหมายเสร็จ
 • "เลื่อนไปพรุ่งนี้" → เลื่อน Deadline
 • "เตือนอีก 30 นาที" → ตั้งเตือน
+• "แจ้งเตือนโทรหาแฟน 21:00 วันนี้" → ตั้งเตือนตามวันเวลา
 • "ยกเลิก" → ยกเลิกงาน (เลือกจากหมายเลข)
 • "สมัคร" → สมัครสมาชิก`
 
@@ -113,10 +114,12 @@ export class ConversationService {
         return taskService.rescheduleTask(userId, intent.taskTitle, intent.newDeadline)
       }
 
-      case 'set_reminder': {
-        const minutes = intent.reminderMinutes ?? 30
-        return taskService.setReminder(userId, intent.taskTitle, minutes, originalMessage)
-      }
+      case 'set_reminder':
+        return taskService.setReminder(userId, intent.taskTitle, {
+          minutes: intent.reminderMinutes,
+          remindAt: intent.remindAt,
+          sourceMessage: originalMessage,
+        })
 
       case 'help':
         return HELP_MESSAGE

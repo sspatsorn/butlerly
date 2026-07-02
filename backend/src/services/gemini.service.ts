@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { env } from '../config/env'
 import { BOT_NAME } from '../config/bot-persona'
 import { parseRuleBasedIntent } from './intent.parser'
+import { isReminderLikeMessage, parseScheduleFromText } from '../utils/datetime.parser'
 import type { ParsedIntent } from '../types'
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
@@ -18,7 +19,7 @@ Intent types:
 - list_tasks: ดูรายการงาน (เช่น "วันนี้มีงานอะไร" = งานวันนี้, "งานอะไรบ้าง" = งานทั้งหมดทั้งเสร็จและไม่เสร็จ)
 - complete_task: ทำเครื่องหมายงานเสร็จ (เช่น "งานนี้เสร็จแล้ว", "เสร็จแล้ว")
 - reschedule_task: เลื่อน deadline (เช่น "เลื่อนไปพรุ่งนี้", "เลื่อนไปวันจันทร์")
-- set_reminder: ตั้งเตือน (เช่น "เตือนอีก 30 นาที", "เตือนพรุ่งนี้ 9 โมง")
+- set_reminder: ตั้งเตือน (เช่น "เตือนอีก 30 นาที", "แจ้งเตือนโทรหาแฟน 21:00 วันนี้", "เตือนพรุ่งนี้ 9 โมง")
 - help: ขอความช่วยเหลือ
 - unknown: ไม่เข้าใจ
 
@@ -30,6 +31,7 @@ JSON format:
   "deadline": "ISO 8601 datetime หรือ null",
   "newDeadline": "ISO 8601 สำหรับ reschedule",
   "reminderMinutes": 30,
+  "remindAt": "ISO 8601 datetime สำหรับเวลาแจ้งเตือนที่ระบุชัด (เช่น 21:00 วันนี้)",
   "checklist": ["รายการ 1", "รายการ 2"],
   "responseMessage": "ข้อความตอบกลับสั้นๆ ภาษาไทย"
 }
@@ -42,9 +44,12 @@ JSON format:
 - ถ้าเป็นข้อความงานยาวๆ หรือ forward ให้ intent = create_task
 - สร้าง checklist จากรายละเอียดงานถ้ามีหลายขั้นตอน
 - แยก deadline จากข้อความถ้ามี เช่น "ส่งรายงานพรุ่งนี้ 17:00"
+- ถ้าข้อความเป็น "แจ้งเตือน/เตือน" พร้อมเวลา → intent = set_reminder, ใส่ remindAt เป็น ISO, taskTitle เป็นชื่องานสั้นๆ (ไม่ใส่คำว่าแจ้งเตือน)
+- "แจ้งเตือนโทรหาแฟน 21:00 วันนี้" → set_reminder, taskTitle="โทรหาแฟน", remindAt=วันนี้ 21:00 Bangkok
 - "งานนี้เสร็จแล้ว" หรือ "เสร็จแล้ว" อย่างเดียว = complete_task โดยไม่ต้องใส่ชื่องาน
 - "เลื่อนไปพรุ่งนี้" อย่างเดียว = reschedule_task งานล่าสุด
-- "เตือนอีก 30 นาที" อย่างเดียว = set_reminder งานล่าสุด`
+- "เตือนอีก 30 นาที" อย่างเดียว = set_reminder งานล่าสุด, ใส่ reminderMinutes
+- ถ้ามีเวลาเฉพาะ (21:00, พรุ่งนี้ 9 โมง) ให้ใส่ remindAt แทน reminderMinutes`
 
 export class GeminiService {
   async parseIntent(message: string): Promise<ParsedIntent> {
@@ -64,6 +69,26 @@ export class GeminiService {
         if (!jsonMatch) continue
 
         const parsed = JSON.parse(jsonMatch[0]) as ParsedIntent
+
+        if (parsed.intent === 'set_reminder' && !parsed.remindAt) {
+          const schedule = parseScheduleFromText(message)
+          if (schedule) {
+            parsed.remindAt = schedule.remindAt.toISOString()
+            if (!parsed.taskTitle?.trim()) parsed.taskTitle = schedule.taskTitle
+          }
+        }
+
+        if (parsed.intent === 'create_task' && isReminderLikeMessage(message)) {
+          const schedule = parseScheduleFromText(message)
+          if (schedule) {
+            return {
+              intent: 'set_reminder',
+              taskTitle: schedule.taskTitle,
+              remindAt: schedule.remindAt.toISOString(),
+            }
+          }
+        }
+
         return parsed
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)

@@ -66,6 +66,7 @@ export interface ParsedIntent {
   taskId?: string
   deadline?: string
   reminderMinutes?: number
+  remindAt?: string
   newDeadline?: string
   checklist?: string[]
   description?: string

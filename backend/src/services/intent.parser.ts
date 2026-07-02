@@ -1,4 +1,5 @@
 import type { ParsedIntent } from '../types'
+import { isReminderLikeMessage, parseScheduleFromText } from '../utils/datetime.parser'
 
 function tomorrowAt9am(): string {
   const d = new Date()
@@ -45,16 +46,27 @@ export function parseRuleBasedIntent(message: string): ParsedIntent | null {
     }
   }
 
-  // ตั้งเตือน
+  // ตั้งเตือน — วันเวลาเฉพาะ หรือ อีก X นาที/ชั่วโมง
+  if (isReminderLikeMessage(text)) {
+    const schedule = parseScheduleFromText(text)
+    if (schedule) {
+      return {
+        intent: 'set_reminder',
+        taskTitle: schedule.taskTitle || undefined,
+        remindAt: schedule.remindAt.toISOString(),
+      }
+    }
+  }
+
   const reminderMatch = lower.match(/(?:ช่วย)?เตือน(?:ฉัน|ผม)?(?:อีก)?\s*(\d+)\s*นาที/)
   if (reminderMatch) {
-    const title = text
-      .replace(/^(ช่วย)?เตือน(?:ฉัน|ผม)?(?:อีก)?\s*\d+\s*นาที\s*/i, '')
-      .trim()
+    const minutes = parseInt(reminderMatch[1], 10)
+    const schedule = parseScheduleFromText(`อีก ${minutes} นาที ${text}`)
     return {
       intent: 'set_reminder',
-      taskTitle: title || undefined,
-      reminderMinutes: parseInt(reminderMatch[1], 10),
+      taskTitle: schedule?.taskTitle || undefined,
+      reminderMinutes: minutes,
+      remindAt: schedule?.remindAt.toISOString(),
     }
   }
 

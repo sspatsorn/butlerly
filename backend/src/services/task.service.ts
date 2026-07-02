@@ -2,6 +2,7 @@ import { taskRepository } from '../repositories/task.repository'
 import { checklistRepository } from '../repositories/checklist.repository'
 import { reminderRepository } from '../repositories/reminder.repository'
 import { BOT_NAME, getDashboardUrl } from '../config/bot-persona'
+import { formatThaiDateTime, parseScheduleFromText } from '../utils/datetime.parser'
 import type { Task, TaskWithChecklist } from '../types'
 
 const STATUS_LABELS: Record<Task['status'], string> = {
@@ -141,16 +142,29 @@ export class TaskService {
   async setReminder(
     userId: string,
     taskTitle: string | undefined,
-    minutes: number,
-    sourceMessage?: string,
+    options: { minutes?: number; remindAt?: string; sourceMessage?: string },
   ): Promise<string> {
+    const { minutes, remindAt: remindAtIso, sourceMessage } = options
+
+    let remindAt: Date
+    if (remindAtIso) {
+      remindAt = new Date(remindAtIso)
+    } else if (minutes !== undefined) {
+      remindAt = new Date(Date.now() + minutes * 60 * 1000)
+    } else {
+      remindAt = new Date(Date.now() + 30 * 60 * 1000)
+    }
+
+    if (remindAt.getTime() <= Date.now()) {
+      return '❌ เวลาแจ้งเตือนต้องอยู่ในอนาคตค่ะ ลองระบุวันและเวลาใหม่อีกครั้งนะคะ'
+    }
+
     let title = taskTitle?.trim() ?? ''
     title = title.replace(/^(ช่วย)?เตือน(?:ฉัน|ผม)?(?:อีก)?\s*\d+\s*นาที\s*/i, '').trim()
 
     if (!title && sourceMessage) {
-      title = sourceMessage
-        .replace(/^(ช่วย)?เตือน(?:ฉัน|ผม)?(?:อีก)?\s*\d+\s*นาที\s*/i, '')
-        .trim()
+      const schedule = parseScheduleFromText(sourceMessage)
+      title = schedule?.taskTitle ?? sourceMessage.trim()
     }
 
     let task = await taskRepository.findTaskSmart(userId, title || undefined)
@@ -159,6 +173,7 @@ export class TaskService {
       const created = await this.createTask({
         userId,
         title: title.slice(0, 100),
+        deadline: remindAt.toISOString(),
         sourceMessage,
       })
       task = created
@@ -168,15 +183,19 @@ export class TaskService {
       return '📭 ไม่มีงานให้ตั้งเตือน ลองส่งข้อความงานมาก่อนนะคะ'
     }
 
-    const remindAt = new Date(Date.now() + minutes * 60 * 1000).toISOString()
+    const formatted = formatThaiDateTime(remindAt)
     await reminderRepository.create({
       taskId: task.id,
       userId,
-      remindAt,
-      message: `⏰ ${BOT_NAME} เตือน: ${task.title}`,
+      remindAt: remindAt.toISOString(),
+      message: `⏰ ${BOT_NAME} เตือน: ${task.title}\n📅 ${formatted}`,
     })
 
-    return `🔔 ตั้งเตือน "${task.title}" อีก ${minutes} นาที`
+    if (!task.deadline) {
+      await taskRepository.updateDeadline(task.id, userId, remindAt.toISOString())
+    }
+
+    return `🔔 ตั้งเตือน "${task.title}"\n📅 ${formatted}`
   }
 }
 
