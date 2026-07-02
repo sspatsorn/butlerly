@@ -4,6 +4,7 @@ import { env } from './config/env'
 import webhookRoutes from './routes/webhook.routes'
 import apiRoutes from './routes/api.routes'
 import { reminderService } from './services/reminder.service'
+import { keepAliveService, createHttpServer } from './services/keepalive.service'
 
 export function createApp() {
   const app = express()
@@ -22,9 +23,12 @@ export function createApp() {
 export function startServer() {
   const app = createApp()
   const port = env.PORT
-
   const host = env.HOST
-  app.listen(port, host, () => {
+  const server = createHttpServer(app)
+
+  keepAliveService.attach(server)
+
+  server.listen(port, host, () => {
     const publicUrl = process.env.RENDER_EXTERNAL_URL ?? `http://${env.PUBLIC_HOST}:${port}`
     console.log(`🚀 Server running on ${publicUrl}`)
     if (env.PUBLIC_HOST !== 'localhost' && !process.env.RENDER_EXTERNAL_URL) {

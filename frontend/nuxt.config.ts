@@ -8,6 +8,19 @@ function resolveApiBase(): string {
   return 'http://localhost:3001/api'
 }
 
+function resolveWsBase(): string {
+  if (process.env.NUXT_PUBLIC_WS_BASE) {
+    return process.env.NUXT_PUBLIC_WS_BASE.replace(/\/$/, '')
+  }
+  if (process.env.BACKEND_URL) {
+    return process.env.BACKEND_URL.replace(/^http/, 'ws').replace(/\/$/, '')
+  }
+  if (process.env.NUXT_PUBLIC_API_BASE) {
+    return process.env.NUXT_PUBLIC_API_BASE.replace(/^http/, 'ws').replace(/\/api$/, '')
+  }
+  return 'ws://localhost:3001'
+}
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-02',
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
@@ -16,6 +29,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: resolveApiBase(),
+      wsBase: resolveWsBase(),
       liffId: process.env.NUXT_PUBLIC_LIFF_ID || '',
     },
   },

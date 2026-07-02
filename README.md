@@ -176,6 +176,9 @@ ngrok http 3001
 ### หมายเหตุ
 
 - Free plan จะ sleep เมื่อไม่มี traffic — request แรกอาจช้า ~30 วินาที
+- มี **WebSocket keep-alive** (`/ws/keepalive`) + ping ข้าม service ทุก 12 นาที
+- เปิดหน้าเว็บ Butlerly จะเชื่อม WebSocket ไป backend อัตโนมัติ (ช่วยไม่ให้ sleep ตอนใช้งาน)
+- ถ้าต้องการไม่ sleep ตลอด 24 ชม. ใช้ [cron-job.org](https://cron-job.org) ping ทั้ง 2 URL ทุก 10 นาที หรืออัปเกรด Render paid
 - `FRONTEND_URL` และ `BACKEND_URL` เชื่อมกันอัตโนมัติผ่าน `render.yaml`
 - ถ้า deploy แยก (ไม่ใช้ Blueprint) ตั้ง env เอง:
   - Backend: `FRONTEND_URL=https://your-frontend.onrender.com`
