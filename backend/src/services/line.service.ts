@@ -1,4 +1,5 @@
 import { Client, middleware, WebhookEvent, TextMessage, MessageAPIResponseBase } from '@line/bot-sdk'
+import type { RequestHandler } from 'express'
 import { env } from '../config/env'
 
 export const lineClient = new Client({
@@ -6,7 +7,7 @@ export const lineClient = new Client({
   channelSecret: env.LINE_CHANNEL_SECRET,
 })
 
-export const lineMiddleware = middleware({
+export const lineMiddleware: RequestHandler = middleware({
   channelAccessToken: env.LINE_CHANNEL_ACCESS_TOKEN,
   channelSecret: env.LINE_CHANNEL_SECRET,
 })
