@@ -96,6 +96,21 @@ function parseHourMinute(text: string): { hour: number; minute: number } | null 
     return { hour: parseInt(thum[1], 10) + 18, minute: 0 }
   }
 
+  const thaiThum: Record<string, number> = {
+    หนึ่ง: 1, สอง: 2, สาม: 3, สี่: 4, ห้า: 5,
+    หก: 6, เจ็ด: 7, แปด: 8, เก้า: 9, สิบ: 10,
+    เอ็ด: 1, ยี่: 2,
+  }
+  const thumWord = lower.match(/(หนึ่ง|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า|สิบ|ยี่|เอ็ด)\s*ทุ่ม/)
+  if (thumWord) {
+    const n = thaiThum[thumWord[1]] ?? 0
+    if (n > 0) return { hour: n + 18, minute: 0 }
+  }
+
+  if (/สามทุ่ม/.test(lower)) return { hour: 21, minute: 0 }
+  if (/สองทุ่ม/.test(lower)) return { hour: 20, minute: 0 }
+  if (/หนึ่งทุ่ม|เอ็ดทุ่ม/.test(lower)) return { hour: 19, minute: 0 }
+
   if (/เที่ยงคืน/.test(lower)) return { hour: 0, minute: 0 }
   if (/เที่ยงวัน|เที่ยง/.test(lower)) return { hour: 12, minute: 0 }
 
@@ -191,6 +206,7 @@ export function isReminderLikeMessage(text: string): boolean {
     || /(?:อีก|ใน)\s*\d+\s*(?:นาที|ชม\.?|ชั่วโมง)/.test(lower)
     || /\d{1,2}[:\.]\d{2}\s*น\.?/.test(lower)
     || /\d{1,2}\s*ทุ่ม/.test(lower)
+    || /[หนึ่งสองสามสี่ห้าหกเจ็ดแปดเก้าสิบยี่เอ็ด]+\s*ทุ่ม/.test(lower)
 }
 
 export function parseScheduleFromText(text: string, reference = new Date()): ParsedSchedule | null {

@@ -10,6 +10,13 @@ export interface CreateReminderInput {
 
 export class ReminderRepository {
   async create(input: CreateReminderInput): Promise<Reminder> {
+    // ยกเลิกเตือนเก่าที่ยังไม่ส่งของงานเดียวกัน (กันซ้ำเมื่อ Render ตื่น)
+    await supabase
+      .from('reminders')
+      .update({ sent: true })
+      .eq('task_id', input.taskId)
+      .eq('sent', false)
+
     const { data, error } = await supabase
       .from('reminders')
       .insert({
@@ -23,6 +30,31 @@ export class ReminderRepository {
 
     if (error) throw error
     return data
+  }
+
+  async findDue(withinWindow: { from: string; to: string }): Promise<(Reminder & { tasks: { title: string }; users: { line_user_id: string } })[]> {
+    const { data, error } = await supabase
+      .from('reminders')
+      .select('*, tasks(title), users(line_user_id)')
+      .eq('sent', false)
+      .gte('remind_at', withinWindow.from)
+      .lte('remind_at', withinWindow.to)
+
+    if (error) throw error
+    return (data ?? []) as (Reminder & { tasks: { title: string }; users: { line_user_id: string } })[]
+  }
+
+  /** ปิดเตือนที่เลยเวลาไปแล้ว — ไม่ส่ง LINE (กัน Render ตื่นแล้วยิงเตือนค้าง) */
+  async expireStale(before: string): Promise<number> {
+    const { data, error } = await supabase
+      .from('reminders')
+      .update({ sent: true })
+      .eq('sent', false)
+      .lt('remind_at', before)
+      .select('id')
+
+    if (error) throw error
+    return data?.length ?? 0
   }
 
   async findPending(): Promise<(Reminder & { tasks: { title: string }; users: { line_user_id: string } })[]> {
