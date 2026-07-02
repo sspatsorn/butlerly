@@ -1,0 +1,61 @@
+# Render Blueprint — Butlerly (AI Task Butler)
+# Deploy: Dashboard → New → Blueprint → connect Git repo → Apply
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: butlerly-backend
+    runtime: node
+    region: singapore
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: butlerly-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+  - type: web
+    name: butlerly-frontend
+    runtime: node
+    region: singapore
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: NITRO_HOST
+        value: 0.0.0.0
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: butlerly-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: NUXT_PUBLIC_LIFF_ID
+        sync: false

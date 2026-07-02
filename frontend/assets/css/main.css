@@ -1,0 +1,48 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+:root {
+  --butlerly-primary: #7c3aed;
+  --butlerly-primary-soft: #f5f3ff;
+  --butlerly-accent: #a855f7;
+  --butlerly-surface: #ffffff;
+  --butlerly-text: #1f2937;
+  --butlerly-muted: #6b7280;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Kanit', sans-serif;
+  @apply antialiased text-gray-900;
+  background: linear-gradient(165deg, #f5f3ff 0%, #ffffff 45%, #ede9fe 100%);
+  min-height: 100dvh;
+}
+
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.btn-primary-gradient {
+  @apply bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold shadow-md shadow-violet-200/50;
+}
+
+@media (hover: none) {
+  .touch-card:active {
+    transform: scale(0.98);
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

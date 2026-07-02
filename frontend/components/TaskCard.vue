@@ -1,0 +1,106 @@
+<script setup lang="ts">
+import type { Task, TaskStatus } from '~/types/task'
+
+defineProps<{
+  task: Task
+}>()
+
+const emit = defineEmits<{
+  updateStatus: [taskId: string, status: TaskStatus]
+}>()
+
+const statusConfig: Record<TaskStatus, { label: string; dot: string; border: string; bg: string }> = {
+  pending: {
+    label: 'รอดำเนินการ',
+    dot: 'bg-amber-400',
+    border: 'border-l-amber-400',
+    bg: 'bg-amber-50 text-amber-800',
+  },
+  in_progress: {
+    label: 'กำลังทำ',
+    dot: 'bg-sky-400',
+    border: 'border-l-sky-400',
+    bg: 'bg-sky-50 text-sky-800',
+  },
+  completed: {
+    label: 'เสร็จแล้ว',
+    dot: 'bg-emerald-400',
+    border: 'border-l-emerald-400',
+    bg: 'bg-emerald-50 text-emerald-800',
+  },
+  cancelled: {
+    label: 'ยกเลิก',
+    dot: 'bg-gray-300',
+    border: 'border-l-gray-300',
+    bg: 'bg-gray-100 text-gray-500',
+  },
+}
+
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return null
+  return new Date(dateStr).toLocaleString('th-TH', {
+    timeZone: 'Asia/Bangkok',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+</script>
+
+<template>
+  <article
+    class="touch-card transition-all duration-200 bg-white rounded-2xl border border-gray-100 shadow-sm shadow-gray-100/80 overflow-hidden border-l-4"
+    :class="statusConfig[task.status].border"
+  >
+    <div class="p-4">
+      <div class="flex items-start gap-3">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="w-2 h-2 rounded-full shrink-0" :class="statusConfig[task.status].dot" />
+            <span
+              class="text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full"
+              :class="statusConfig[task.status].bg"
+            >
+              {{ statusConfig[task.status].label }}
+            </span>
+          </div>
+          <h3 class="font-semibold text-gray-900 text-[15px] leading-snug break-words">
+            {{ task.title }}
+          </h3>
+          <p v-if="task.description" class="text-sm text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
+            {{ task.description }}
+          </p>
+        </div>
+      </div>
+
+      <div v-if="task.deadline" class="flex items-center gap-2 mt-3 px-3 py-2 rounded-xl bg-orange-50 text-orange-700 text-sm">
+        <UIcon name="i-heroicons-clock" class="w-4 h-4 shrink-0" />
+        <span class="font-medium">{{ formatDate(task.deadline) }}</span>
+      </div>
+
+      <ul v-if="task.checklist_items?.length" class="mt-3 space-y-2 rounded-xl bg-gray-50 p-3">
+        <li
+          v-for="item in task.checklist_items"
+          :key="item.id"
+          class="flex items-start gap-2.5 text-sm text-gray-600"
+        >
+          <UIcon
+            :name="item.completed ? 'i-heroicons-check-circle-solid' : 'i-heroicons-minus-circle'"
+            class="w-4 h-4 mt-0.5 shrink-0"
+            :class="item.completed ? 'text-emerald-500' : 'text-gray-300'"
+          />
+          <span :class="{ 'line-through text-gray-400': item.completed }">{{ item.title }}</span>
+        </li>
+      </ul>
+
+      <button
+        v-if="task.status !== 'completed' && task.status !== 'cancelled'"
+        type="button"
+        class="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-semibold shadow-md shadow-violet-200/50 active:scale-[0.98] transition-transform"
+        @click="emit('updateStatus', task.id, 'completed')"
+      >
+        <UIcon name="i-heroicons-check" class="w-5 h-5" />
+        ทำเครื่องหมายเสร็จ
+      </button>
+    </div>
+  </article>
+</template>
