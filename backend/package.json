@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "AI Task Butler - Express backend for LINE webhook and task management",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
