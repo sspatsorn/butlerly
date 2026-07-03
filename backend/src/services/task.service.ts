@@ -143,8 +143,7 @@ export class TaskService {
     }
 
     await taskRepository.updateDeadline(task.id, userId, newDeadline)
-    const d = new Date(newDeadline)
-    return `📅 เลื่อน "${task.title}" ไป ${d.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`
+    return `📅 เลื่อน "${task.title}" ไป ${formatThaiDateTime(new Date(newDeadline))}`
   }
 
   async setReminder(

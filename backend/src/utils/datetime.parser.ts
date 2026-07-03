@@ -246,3 +246,45 @@ export function parseScheduleFromText(text: string, reference = new Date()): Par
 
   return { remindAt, taskTitle: cleanTaskTitle(text) }
 }
+
+function extractRescheduleTitle(text: string): string {
+  return text
+    .replace(/^เลื่อน(งาน)?/i, '')
+    .replace(/\s*(?:เป็น|ไป|ตอน|เวลา)\s+.*/is, '')
+    .trim()
+}
+
+export function parseRescheduleFromText(
+  text: string,
+  reference = new Date(),
+): { newDeadline: string; taskTitle: string } | null {
+  const lower = text.toLowerCase()
+  const taskTitle = extractRescheduleTitle(text)
+  const now = bangkokParts(reference)
+
+  const time = parseHourMinute(text)
+  if (time) {
+    const date = resolveDate(text, now)
+    let deadline = toBangkokIso(date.year, date.month, date.day, time.hour, time.minute)
+
+    const hasExplicitDate = /วันนี้|พรุ่งนี้|มะรืน|วัน(?:อาทิตย์|จันทร์|อังคาร|พุธ|พฤหัส|ศุกร์|เสาร์)|\d{1,2}[\/\-]\d{1,2}/.test(lower)
+    if (!hasExplicitDate && deadline.getTime() <= reference.getTime()) {
+      const tomorrow = addDays(date.year, date.month, date.day, 1)
+      deadline = toBangkokIso(tomorrow.year, tomorrow.month, tomorrow.day, time.hour, time.minute)
+    }
+
+    if (deadline.getTime() <= reference.getTime()) return null
+
+    return { newDeadline: deadline.toISOString(), taskTitle }
+  }
+
+  if (/พรุ่งนี้|วันพรุ่งนี้/.test(lower)) {
+    const tomorrow = addDays(now.year, now.month, now.day, 1)
+    return {
+      newDeadline: toBangkokIso(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0).toISOString(),
+      taskTitle,
+    }
+  }
+
+  return null
+}

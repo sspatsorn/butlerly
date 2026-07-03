@@ -1,12 +1,5 @@
 import type { ParsedIntent } from '../types'
-import { isReminderLikeMessage, parseScheduleFromText } from '../utils/datetime.parser'
-
-function tomorrowAt9am(): string {
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
-  d.setHours(9, 0, 0, 0)
-  return d.toISOString()
-}
+import { isReminderLikeMessage, parseRescheduleFromText, parseScheduleFromText } from '../utils/datetime.parser'
 
 export function parseRuleBasedIntent(message: string): ParsedIntent | null {
   const text = message.trim()
@@ -43,15 +36,15 @@ export function parseRuleBasedIntent(message: string): ParsedIntent | null {
 
   // เลื่อน deadline
   if (/เลื่อน/.test(lower)) {
-    const title = text
-      .replace(/^เลื่อน(ไป)?\s*/i, '')
-      .replace(/\s*(ไป)?(พรุ่งนี้|วันพรุ่งนี้|วันจันทร์|วันอังคาร|วันพุธ|วันพฤหัส|วันศุกร์|วันเสาร์|วันอาทิตย์).*$/i, '')
-      .trim()
-    return {
-      intent: 'reschedule_task',
-      taskTitle: title || undefined,
-      newDeadline: tomorrowAt9am(),
+    const parsed = parseRescheduleFromText(text)
+    if (parsed) {
+      return {
+        intent: 'reschedule_task',
+        taskTitle: parsed.taskTitle || undefined,
+        newDeadline: parsed.newDeadline,
+      }
     }
+    return { intent: 'reschedule_task' }
   }
 
   // ตั้งเตือน — วันเวลาเฉพาะ หรือ อีก X นาที/ชั่วโมง

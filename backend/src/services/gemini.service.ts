@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { env } from '../config/env'
 import { BOT_NAME } from '../config/bot-persona'
 import { parseRuleBasedIntent } from './intent.parser'
-import { isReminderLikeMessage, parseScheduleFromText } from '../utils/datetime.parser'
+import { isReminderLikeMessage, parseRescheduleFromText, parseScheduleFromText } from '../utils/datetime.parser'
 import type { ParsedIntent } from '../types'
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
@@ -91,6 +91,14 @@ export class GeminiService {
               taskTitle: schedule.taskTitle,
               remindAt: schedule.remindAt.toISOString(),
             }
+          }
+        }
+
+        if (parsed.intent === 'reschedule_task' && !parsed.newDeadline) {
+          const rescheduled = parseRescheduleFromText(message)
+          if (rescheduled) {
+            parsed.newDeadline = rescheduled.newDeadline
+            if (!parsed.taskTitle?.trim()) parsed.taskTitle = rescheduled.taskTitle
           }
         }
 

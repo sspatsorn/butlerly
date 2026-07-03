@@ -8,6 +8,7 @@ import { taskService, RECENT_STATUS_LIMIT } from './task.service'
 import { registrationService } from './registration.service'
 import { cancelService } from './cancel.service'
 import type { ParsedIntent } from '../types'
+import { parseRescheduleFromText } from '../utils/datetime.parser'
 
 const HELP_MESSAGE = `💁‍♀️ ${BOT_NAME} - เลขาส่วนตัวของคุณ
 
@@ -117,13 +118,22 @@ export class ConversationService {
         return taskService.completeTask(userId, intent.taskTitle)
 
       case 'reschedule_task': {
-        if (!intent.newDeadline) {
-          const tomorrow = new Date()
-          tomorrow.setDate(tomorrow.getDate() + 1)
-          tomorrow.setHours(9, 0, 0, 0)
-          intent.newDeadline = tomorrow.toISOString()
+        let newDeadline = intent.newDeadline
+        let taskTitle = intent.taskTitle
+
+        if (!newDeadline) {
+          const parsed = parseRescheduleFromText(originalMessage)
+          if (parsed) {
+            newDeadline = parsed.newDeadline
+            if (!taskTitle?.trim()) taskTitle = parsed.taskTitle
+          }
         }
-        return taskService.rescheduleTask(userId, intent.taskTitle, intent.newDeadline)
+
+        if (!newDeadline) {
+          return '❌ ไม่เข้าใจวันเวลาที่จะเลื่อนค่ะ ลองพิมพ์ เช่น "เลื่อนงาน...เป็น 18:00 วันนี้"'
+        }
+
+        return taskService.rescheduleTask(userId, taskTitle, newDeadline)
       }
 
       case 'set_reminder':
