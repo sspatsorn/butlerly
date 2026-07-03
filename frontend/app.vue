@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-dvh">
+  <div class="light min-h-dvh">
     <NuxtPage />
   </div>
 </template>

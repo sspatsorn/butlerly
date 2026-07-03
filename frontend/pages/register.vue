@@ -73,7 +73,7 @@ async function handleSubmit() {
         </div>
       </div>
       <NuxtLink to="/" class="block mt-6">
-        <UButton color="primary" block size="lg" class="rounded-xl">ไปหน้า Dashboard</UButton>
+        <AppButton block>ไปหน้า Dashboard</AppButton>
       </NuxtLink>
     </div>
 
@@ -85,7 +85,7 @@ async function handleSubmit() {
       <h2 class="font-bold text-gray-900 text-lg">สมัครสำเร็จ!</h2>
       <p class="text-gray-500 text-sm mt-2">กลับไปที่ LINE แล้วเริ่มส่งงานได้เลยค่ะ</p>
       <NuxtLink to="/" class="block mt-6">
-        <UButton color="primary" block size="lg" class="rounded-xl">ไปหน้า Dashboard</UButton>
+        <AppButton block>ไปหน้า Dashboard</AppButton>
       </NuxtLink>
     </div>
 
@@ -97,12 +97,11 @@ async function handleSubmit() {
     >
       <div>
         <label class="block text-sm font-semibold text-gray-800 mb-2">LINE User ID</label>
-        <UInput
+        <AppInput
           v-model="lineUserId"
           placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-          size="lg"
           :readonly="isLiffReady"
-          :class="{ 'bg-violet-50/50': isLiffReady }"
+          :muted="isLiffReady"
         />
         <p v-if="isLiffReady" class="text-xs text-violet-600 mt-1.5 flex items-center gap-1">
           <UIcon name="i-heroicons-check-badge" class="w-4 h-4" />
@@ -119,25 +118,24 @@ async function handleSubmit() {
 
       <div>
         <label class="block text-sm font-semibold text-gray-800 mb-2">ชื่อ-นามสกุล</label>
-        <UInput v-model="form.fullName" placeholder="เช่น สมชาย ใจดี" size="lg" required />
+        <AppInput v-model="form.fullName" placeholder="เช่น สมชาย ใจดี" required />
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-gray-800 mb-2">เบอร์โทรศัพท์</label>
-        <UInput v-model="form.phone" placeholder="0812345678" type="tel" size="lg" inputmode="tel" required />
+        <AppInput v-model="form.phone" placeholder="0812345678" type="tel" inputmode="tel" required />
       </div>
 
-      <UAlert v-if="error" color="error" :title="error" class="rounded-xl" />
+      <AppAlert v-if="error" :title="error" class="rounded-xl" />
 
-      <UButton
+      <AppButton
         type="submit"
         block
-        size="xl"
+        size="lg"
         :loading="loading"
-        class="rounded-xl btn-primary-gradient"
       >
         สมัครสมาชิก
-      </UButton>
+      </AppButton>
     </form>
 
     <!-- Alternative -->

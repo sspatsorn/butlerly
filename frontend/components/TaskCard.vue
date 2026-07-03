@@ -140,14 +140,14 @@ watch(
               <input
                 v-model="editTitle"
                 type="text"
-                class="task-edit-input mb-3"
+                class="app-input mb-3"
                 placeholder="ชื่องาน"
               >
 
               <label class="block text-xs font-semibold text-gray-600 mb-1.5">วันและเวลาแจ้งเตือน</label>
               <div class="grid grid-cols-2 gap-2 mb-2">
-                <input v-model="editDate" type="date" class="task-edit-input">
-                <input v-model="editTime" type="time" class="task-edit-input">
+                <input v-model="editDate" type="date" class="app-input">
+                <input v-model="editTime" type="time" class="app-input">
               </div>
               <p class="text-[11px] text-gray-500 leading-relaxed">
                 บันทึกแล้วจะอัปเดตการแจ้งเตือน LINE ตามเวลาใหม่
@@ -221,40 +221,3 @@ watch(
     </div>
   </article>
 </template>
-
-<style scoped>
-.task-edit-form {
-  color-scheme: light;
-}
-
-.task-edit-input {
-  width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid #e5e7eb;
-  background-color: #ffffff;
-  padding: 0.625rem 0.875rem;
-  font-size: 15px;
-  color: #111827;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  color-scheme: light;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.task-edit-input::placeholder {
-  color: #9ca3af;
-}
-
-.task-edit-input:focus {
-  border-color: #c4b5fd;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
-}
-
-.task-edit-input[type='date'],
-.task-edit-input[type='time'] {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2937;
-}
-</style>

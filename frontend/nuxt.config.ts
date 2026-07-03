@@ -25,9 +25,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-02',
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
   modules: ['@nuxt/ui'],
-  colorMode: {
-    preference: 'light',
-    fallback: 'light',
+  ui: {
+    colorMode: false,
   },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
@@ -38,6 +37,9 @@ export default defineNuxtConfig({
     },
   },
   app: {
+    rootAttrs: {
+      class: 'light',
+    },
     head: {
       title: 'Butlerly',
       link: [

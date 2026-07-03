@@ -86,16 +86,15 @@ watch(filter, loadTasks)
     <!-- LINE User ID (collapsible on mobile) -->
     <div v-if="showIdInput || !hasAutoId" class="mb-5 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
       <label class="block text-sm font-semibold text-gray-800 mb-2">LINE User ID</label>
-      <UInput
+      <AppInput
         v-model="lineUserId"
         placeholder="Uxxxxxxxx..."
-        size="lg"
         class="mb-3"
         @keyup.enter="saveAndLoad"
       />
-      <UButton color="primary" block size="lg" :loading="loading" class="rounded-xl" @click="saveAndLoad">
+      <AppButton block :loading="loading" @click="saveAndLoad">
         โหลดงานของฉัน
-      </UButton>
+      </AppButton>
       <p class="text-[11px] text-gray-400 mt-2 text-center leading-relaxed">
         เปิดจากลิงก์ใน LINE จะดึง ID อัตโนมัติ
       </p>
@@ -138,7 +137,7 @@ watch(filter, loadTasks)
         </button>
       </div>
 
-      <UAlert v-if="error" color="error" :title="error" class="mb-4 rounded-2xl" />
+      <AppAlert v-if="error" :title="error" class="mb-4 rounded-2xl" />
 
       <!-- Loading -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-16 gap-3">
