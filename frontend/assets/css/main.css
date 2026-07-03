@@ -12,6 +12,7 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+  color-scheme: light;
 }
 
 body {
@@ -19,6 +20,13 @@ body {
   @apply antialiased text-gray-900;
   background: linear-gradient(165deg, #f5f3ff 0%, #ffffff 45%, #ede9fe 100%);
   min-height: 100dvh;
+  color-scheme: light;
+}
+
+input,
+textarea,
+select {
+  color-scheme: light;
 }
 
 .safe-bottom {

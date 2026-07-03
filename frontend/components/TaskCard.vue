@@ -135,37 +135,43 @@ watch(
           </div>
 
           <template v-if="editing">
-            <label class="block text-xs font-medium text-gray-500 mb-1">ชื่องาน</label>
-            <UInput v-model="editTitle" size="lg" class="mb-3" />
+            <div class="task-edit-form rounded-xl border border-violet-100 bg-violet-50/40 p-3">
+              <label class="block text-xs font-semibold text-gray-600 mb-1.5">ชื่องาน</label>
+              <input
+                v-model="editTitle"
+                type="text"
+                class="task-edit-input mb-3"
+                placeholder="ชื่องาน"
+              >
 
-            <label class="block text-xs font-medium text-gray-500 mb-1">วันและเวลาแจ้งเตือน</label>
-            <div class="grid grid-cols-2 gap-2 mb-3">
-              <UInput v-model="editDate" type="date" size="lg" />
-              <UInput v-model="editTime" type="time" size="lg" />
+              <label class="block text-xs font-semibold text-gray-600 mb-1.5">วันและเวลาแจ้งเตือน</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <input v-model="editDate" type="date" class="task-edit-input">
+                <input v-model="editTime" type="time" class="task-edit-input">
+              </div>
+              <p class="text-[11px] text-gray-500 leading-relaxed">
+                บันทึกแล้วจะอัปเดตการแจ้งเตือน LINE ตามเวลาใหม่
+              </p>
             </div>
-            <p class="text-[11px] text-gray-400 mb-3">บันทึกแล้วจะอัปเดตการแจ้งเตือน LINE ตามเวลาใหม่</p>
 
-            <div class="flex gap-2">
-              <UButton
-                color="primary"
-                block
-                size="lg"
-                class="rounded-xl"
-                :loading="saving"
+            <div class="flex gap-2 mt-3">
+              <button
+                type="button"
+                class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-semibold shadow-md shadow-violet-200/50 disabled:opacity-60 active:scale-[0.98] transition-transform"
+                :disabled="saving || !editTitle.trim()"
                 @click="saveEdit"
               >
+                <span v-if="saving" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 บันทึก
-              </UButton>
-              <UButton
-                variant="soft"
-                color="neutral"
-                size="lg"
-                class="rounded-xl shrink-0"
+              </button>
+              <button
+                type="button"
+                class="shrink-0 px-5 py-3 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 active:scale-[0.98] transition-transform disabled:opacity-60"
                 :disabled="saving"
                 @click="cancelEdit"
               >
                 ยกเลิก
-              </UButton>
+              </button>
             </div>
           </template>
 
@@ -215,3 +221,40 @@ watch(
     </div>
   </article>
 </template>
+
+<style scoped>
+.task-edit-form {
+  color-scheme: light;
+}
+
+.task-edit-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  padding: 0.625rem 0.875rem;
+  font-size: 15px;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  color-scheme: light;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.task-edit-input::placeholder {
+  color: #9ca3af;
+}
+
+.task-edit-input:focus {
+  border-color: #c4b5fd;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.task-edit-input[type='date'],
+.task-edit-input[type='time'] {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+}
+</style>

@@ -25,6 +25,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-02',
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
   modules: ['@nuxt/ui'],
+  colorMode: {
+    preference: 'light',
+    fallback: 'light',
+  },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
