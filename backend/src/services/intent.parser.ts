@@ -16,16 +16,24 @@ export function parseRuleBasedIntent(message: string): ParsedIntent | null {
     return { intent: 'help' }
   }
 
-  if (/วันนี้มีงาน|งานวันนี้|มีงานอะไร/.test(lower)) {
+  if (/วันนี้มีงาน|งานวันนี้/.test(lower) && !/เสร็จ|ยกเลิก/.test(lower)) {
     return { intent: 'list_tasks', listScope: 'today' }
   }
 
-  if (/งานอะไรบ้าง|งานทั้งหมด|รายการงาน|ดูงาน|มีงานบ้าง/.test(lower)) {
-    return { intent: 'list_tasks', listScope: 'all' }
+  if (/ดูงานที่ยกเลิก|งานที่ยกเลิก|รายการงานยกเลิก/.test(lower)) {
+    return { intent: 'list_tasks', listScope: 'cancelled' }
   }
 
-  // เสร็จแล้ว — ต้องเช็คก่อน create_task fallback
-  if (/เสร็จแล้ว|ทำเสร็จ|\bdone\b/i.test(lower)) {
+  if (/ดูงานที่เสร็จ|รายการงานเสร็จ|งานเสร็จแล้วบ้าง|งานที่เสร็จแล้ว/.test(lower)) {
+    return { intent: 'list_tasks', listScope: 'completed' }
+  }
+
+  if (/งานอะไรบ้าง|งานทั้งหมด|รายการงาน|ดูงาน|มีงานบ้าง|มีงานอะไร/.test(lower)) {
+    return { intent: 'list_tasks', listScope: 'pending' }
+  }
+
+  // เสร็จแล้ว — ทำเครื่องหมายงาน (ไม่ใช่ดูรายการ)
+  if (/^(งานนี้\s*)?(เสร็จแล้ว|ทำเสร็จ)\s*$/i.test(lower) || /^งานนี้เสร็จ/i.test(lower)) {
     const title = text
       .replace(/\s*(งานนี้\s*)?(เสร็จแล้ว|ทำเสร็จ|done)\s*$/i, '')
       .replace(/^งานนี้\s*/i, '')

@@ -69,17 +69,34 @@ export class TaskRepository {
     return data
   }
 
-  async listPending(userId: string): Promise<Task[]> {
+  async listPending(userId: string): Promise<TaskWithChecklist[]> {
     const { data, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select('*, checklist_items(*)')
       .eq('user_id', userId)
       .neq('status', 'completed')
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data ?? []
+    return (data ?? []) as TaskWithChecklist[]
+  }
+
+  async listByStatus(userId: string, status: Task['status'], limit?: number): Promise<TaskWithChecklist[]> {
+    let query = supabase
+      .from('tasks')
+      .select('*, checklist_items(*)')
+      .eq('user_id', userId)
+      .eq('status', status)
+      .order('updated_at', { ascending: false })
+
+    if (limit) {
+      query = query.limit(limit)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return (data ?? []) as TaskWithChecklist[]
   }
 
   async findTaskSmart(userId: string, search?: string): Promise<Task | null> {

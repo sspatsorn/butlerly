@@ -4,7 +4,7 @@ import { userRepository } from '../repositories/user.repository'
 import { taskRepository } from '../repositories/task.repository'
 import { geminiService } from './gemini.service'
 import { lineService } from './line.service'
-import { taskService } from './task.service'
+import { taskService, RECENT_STATUS_LIMIT } from './task.service'
 import { registrationService } from './registration.service'
 import { cancelService } from './cancel.service'
 import type { ParsedIntent } from '../types'
@@ -16,7 +16,9 @@ const HELP_MESSAGE = `💁‍♀️ ${BOT_NAME} - เลขาส่วนตั
 📌 คำสั่งที่ใช้ได้:
 • ส่งข้อความงาน → สร้าง Task อัตโนมัติ
 • "วันนี้มีงานอะไร" → ดูงานวันนี้
-• "งานอะไรบ้าง" → ดูงานทั้งหมด (เสร็จ + ยังไม่เสร็จ)
+• "งานอะไรบ้าง" → ดูงานค้าง (ยังไม่เสร็จ)
+• "ดูงานที่เสร็จ" → งานเสร็จ 5 รายการล่าสุด
+• "ดูงานที่ยกเลิก" → งานยกเลิก 5 รายการล่าสุด
 • "งานนี้เสร็จแล้ว" → ทำเครื่องหมายเสร็จ
 • "เลื่อนไปพรุ่งนี้" → เลื่อน Deadline
 • "เตือนอีก 30 นาที" → ตั้งเตือน
@@ -93,12 +95,22 @@ export class ConversationService {
       }
 
       case 'list_tasks': {
-        if (intent.listScope === 'all') {
-          const tasks = await taskRepository.listAll(userId)
-          return taskService.formatAllTasksList(tasks, lineUserId)
+        const scope = intent.listScope ?? 'pending'
+
+        if (scope === 'today') {
+          const tasks = await taskRepository.listToday(userId)
+          return taskService.formatTaskList(tasks, lineUserId)
         }
-        const tasks = await taskRepository.listToday(userId)
-        return taskService.formatTaskList(tasks, lineUserId)
+        if (scope === 'cancelled') {
+          const tasks = await taskRepository.listByStatus(userId, 'cancelled', RECENT_STATUS_LIMIT)
+          return taskService.formatStatusList(tasks, lineUserId, 'cancelled')
+        }
+        if (scope === 'completed') {
+          const tasks = await taskRepository.listByStatus(userId, 'completed', RECENT_STATUS_LIMIT)
+          return taskService.formatStatusList(tasks, lineUserId, 'completed')
+        }
+        const tasks = await taskRepository.listPending(userId)
+        return taskService.formatPendingList(tasks, lineUserId)
       }
 
       case 'complete_task':

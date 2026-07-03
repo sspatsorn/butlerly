@@ -12,6 +12,8 @@ const STATUS_LABELS: Record<Task['status'], string> = {
   cancelled: '❌ ยกเลิก',
 }
 
+const RECENT_STATUS_LIMIT = 5
+
 export class TaskService {
   async createTask(params: {
     userId: string
@@ -70,38 +72,44 @@ export class TaskService {
     return lines.join('\n')
   }
 
-  formatAllTasksList(tasks: TaskWithChecklist[], lineUserId: string): string {
+  formatPendingList(tasks: TaskWithChecklist[], lineUserId: string): string {
     if (tasks.length === 0) {
-      return `📭 ยังไม่มีงานในระบบค่ะ\n\n🔗 ดูแดชบอร์ด:\n${getDashboardUrl(lineUserId)}`
+      return `📭 ไม่มีงานค้างอยู่ค่ะ\n\n🔗 ดูแดชบอร์ด:\n${getDashboardUrl(lineUserId)}`
     }
 
+    const lines = [`📋 งานค้าง (${tasks.length} รายการ):`, '']
+    tasks.forEach((task, i) => {
+      lines.push(this.formatTaskLine(i + 1, task))
+    })
+    lines.push('', `🔗 ดูแดชบอร์ด:\n${getDashboardUrl(lineUserId)}`)
+    return lines.join('\n')
+  }
+
+  formatStatusList(
+    tasks: TaskWithChecklist[],
+    lineUserId: string,
+    status: 'completed' | 'cancelled',
+  ): string {
+    const heading = status === 'completed' ? '✅ งานที่เสร็จแล้ว' : '❌ งานที่ยกเลิก'
+    const emptyLabel = status === 'completed' ? 'งานที่เสร็จแล้ว' : 'งานที่ยกเลิก'
+
+    if (tasks.length === 0) {
+      return `📭 ไม่มี${emptyLabel}ค่ะ\n\nพิมพ์ "งานอะไรบ้าง" เพื่อดูงานค้าง`
+    }
+
+    const lines = [`${heading} (${tasks.length} รายการล่าสุด):`, '']
+    tasks.forEach((task, i) => {
+      lines.push(this.formatTaskLine(i + 1, task))
+    })
+    lines.push('', `💡 พิมพ์ "งานอะไรบ้าง" เพื่อดูงานค้าง`)
+    lines.push('', `🔗 ดูแดชบอร์ด:\n${getDashboardUrl(lineUserId)}`)
+    return lines.join('\n')
+  }
+
+  /** @deprecated ใช้ formatPendingList / formatStatusList แทน */
+  formatAllTasksList(tasks: TaskWithChecklist[], lineUserId: string): string {
     const pending = tasks.filter((t) => t.status !== 'completed' && t.status !== 'cancelled')
-    const completed = tasks.filter((t) => t.status === 'completed')
-    const cancelled = tasks.filter((t) => t.status === 'cancelled')
-
-    const lines = [`📋 รายการงานทั้งหมด (${tasks.length} รายการ)`, '']
-
-    if (pending.length > 0) {
-      lines.push(`⏳ ยังไม่เสร็จ (${pending.length})`)
-      pending.forEach((task, i) => lines.push(this.formatTaskLine(i + 1, task)))
-      lines.push('')
-    }
-
-    if (completed.length > 0) {
-      lines.push(`✅ เสร็จแล้ว (${completed.length})`)
-      completed.forEach((task, i) => lines.push(this.formatTaskLine(i + 1, task)))
-      lines.push('')
-    }
-
-    if (cancelled.length > 0) {
-      lines.push(`❌ ยกเลิก (${cancelled.length})`)
-      cancelled.forEach((task, i) => lines.push(this.formatTaskLine(i + 1, task)))
-      lines.push('')
-    }
-
-    lines.push(`🔗 ดูแดชบอร์ด:\n${getDashboardUrl(lineUserId)}`)
-
-    return lines.join('\n').trimEnd()
+    return this.formatPendingList(pending, lineUserId)
   }
 
   private formatTaskLine(index: number, task: TaskWithChecklist): string {
@@ -200,3 +208,4 @@ export class TaskService {
 }
 
 export const taskService = new TaskService()
+export { RECENT_STATUS_LIMIT }

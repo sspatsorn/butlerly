@@ -61,7 +61,7 @@ export type IntentType =
 
 export interface ParsedIntent {
   intent: IntentType
-  listScope?: 'today' | 'all'
+  listScope?: 'today' | 'pending' | 'completed' | 'cancelled'
   taskTitle?: string
   taskId?: string
   deadline?: string
