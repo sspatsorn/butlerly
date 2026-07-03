@@ -28,6 +28,9 @@ export default defineNuxtConfig({
   ui: {
     colorMode: false,
   },
+  build: {
+    transpile: ['@vuepic/vue-datepicker'],
+  },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {

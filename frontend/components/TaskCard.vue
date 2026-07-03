@@ -13,8 +13,7 @@ const emit = defineEmits<{
 const editing = ref(false)
 const saving = ref(false)
 const editTitle = ref('')
-const editDate = ref('')
-const editTime = ref('')
+const editDeadline = ref<string | null>(null)
 
 const statusConfig: Record<TaskStatus, { label: string; dot: string; border: string; bg: string }> = {
   pending: {
@@ -56,29 +55,13 @@ function formatDate(dateStr: string | null) {
   })
 }
 
-function deadlineToInputs(iso: string | null) {
-  if (!iso) return { date: '', time: '' }
-  const d = new Date(iso)
-  const date = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' })
-  const time = d.toLocaleTimeString('en-GB', {
-    timeZone: 'Asia/Bangkok',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-  return { date, time }
-}
-
 function inputsToDeadline(): string | null {
-  if (!editDate.value || !editTime.value) return null
-  return `${editDate.value}T${editTime.value}:00+07:00`
+  return editDeadline.value
 }
 
 function startEdit() {
   editTitle.value = props.task.title
-  const { date, time } = deadlineToInputs(props.task.deadline)
-  editDate.value = date
-  editTime.value = time
+  editDeadline.value = props.task.deadline
   editing.value = true
 }
 
@@ -145,10 +128,7 @@ watch(
               >
 
               <label class="block text-xs font-semibold text-gray-600 mb-1.5">วันและเวลาแจ้งเตือน</label>
-              <div class="grid grid-cols-2 gap-2 mb-2">
-                <input v-model="editDate" type="date" class="app-input">
-                <input v-model="editTime" type="time" class="app-input">
-              </div>
+              <AppDateTimePicker v-model="editDeadline" class="mb-2" />
               <p class="text-[11px] text-gray-500 leading-relaxed">
                 บันทึกแล้วจะอัปเดตการแจ้งเตือน LINE ตามเวลาใหม่
               </p>

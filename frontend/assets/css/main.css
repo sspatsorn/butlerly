@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+@import "@vuepic/vue-datepicker/dist/main.css";
 
 :root {
   --butlerly-primary: #7c3aed;
@@ -129,6 +130,35 @@ select {
   font-size: 0.875rem;
   line-height: 1.4;
   font-weight: 500;
+}
+
+.app-datepicker {
+  --dp-font-family: 'Kanit', sans-serif;
+  --dp-border-radius: 0.75rem;
+  --dp-cell-border-radius: 0.5rem;
+  --dp-primary-color: #8b5cf6;
+  --dp-primary-disabled-color: #c4b5fd;
+  --dp-border-color: #e5e7eb;
+  --dp-border-color-hover: #d1d5db;
+  --dp-border-color-focus: #c4b5fd;
+  --dp-menu-border-color: #e5e7eb;
+  --dp-background-color: #ffffff;
+  --dp-text-color: #111827;
+  --dp-hover-color: #f5f3ff;
+  --dp-hover-text-color: #111827;
+  --dp-input-padding: 0.75rem 2.5rem 0.75rem 1rem;
+  --dp-font-size: 15px;
+  width: 100%;
+  color-scheme: light;
+}
+
+.app-datepicker .dp__input {
+  font-family: 'Kanit', sans-serif;
+}
+
+.app-datepicker .dp__input_focus {
+  border-color: #c4b5fd;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
 }
 
 .task-edit-form {
