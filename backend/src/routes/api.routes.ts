@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { taskRepository } from '../repositories/task.repository'
 import { userRepository } from '../repositories/user.repository'
 import { registrationService } from '../services/registration.service'
+import { taskService } from '../services/task.service'
 
 const router = Router()
 
@@ -73,6 +74,45 @@ router.patch('/tasks/:id/status', async (req: Request, res: Response) => {
     res.json({ task })
   } catch (error) {
     console.error('PATCH /tasks/:id/status error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.patch('/tasks/:id', async (req: Request, res: Response) => {
+  try {
+    const { lineUserId, title, deadline } = req.body as {
+      lineUserId?: string
+      title?: string
+      deadline?: string | null
+    }
+
+    if (!lineUserId) {
+      res.status(400).json({ error: 'lineUserId is required' })
+      return
+    }
+
+    if (title === undefined && deadline === undefined) {
+      res.status(400).json({ error: 'title or deadline is required' })
+      return
+    }
+
+    const user = await userRepository.findByLineUserId(lineUserId)
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    const taskId = req.params.id as string
+    const message = await taskService.updateTaskDetails(user.id, taskId, { title, deadline })
+    if (message.startsWith('❌')) {
+      res.status(400).json({ error: message.replace('❌ ', '') })
+      return
+    }
+
+    const task = await taskRepository.findById(taskId, user.id)
+    res.json({ task, message })
+  } catch (error) {
+    console.error('PATCH /tasks/:id error:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

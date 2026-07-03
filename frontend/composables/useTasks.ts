@@ -9,12 +9,23 @@ export function useTasks() {
   const loading = useState('tasksLoading', () => false)
   const error = useState<string | null>('tasksError', () => null)
 
+  const fetchMode = useState<'today' | 'all'>('tasksFetchMode', () => 'all')
+
+  async function reloadTasks() {
+    if (fetchMode.value === 'today') {
+      await fetchTodayTasks()
+    } else {
+      await fetchTasks()
+    }
+  }
+
   async function fetchTasks(status?: TaskStatus) {
     if (!lineUserId.value) {
       error.value = 'กรุณาใส่ LINE User ID'
       return
     }
 
+    fetchMode.value = 'all'
     loading.value = true
     error.value = null
 
@@ -38,6 +49,7 @@ export function useTasks() {
       return
     }
 
+    fetchMode.value = 'today'
     loading.value = true
     error.value = null
 
@@ -58,7 +70,22 @@ export function useTasks() {
       method: 'PATCH',
       body: { lineUserId: lineUserId.value, status },
     })
-    await fetchTasks()
+    await reloadTasks()
+  }
+
+  async function updateTask(
+    taskId: string,
+    payload: { title: string; deadline: string | null },
+  ) {
+    await $fetch(`${apiBase}/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: {
+        lineUserId: lineUserId.value,
+        title: payload.title,
+        deadline: payload.deadline,
+      },
+    })
+    await reloadTasks()
   }
 
   return {
@@ -69,5 +96,6 @@ export function useTasks() {
     fetchTasks,
     fetchTodayTasks,
     updateStatus,
+    updateTask,
   }
 }

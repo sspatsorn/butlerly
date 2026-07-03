@@ -73,6 +73,45 @@ export class ReminderRepository {
     const { error } = await supabase.from('reminders').update({ sent: true }).eq('id', id)
     if (error) throw error
   }
+
+  async cancelPendingForTask(taskId: string): Promise<void> {
+    const { error } = await supabase
+      .from('reminders')
+      .update({ sent: true })
+      .eq('task_id', taskId)
+      .eq('sent', false)
+
+    if (error) throw error
+  }
+
+  async syncPendingForTask(
+    taskId: string,
+    userId: string,
+    remindAt: string,
+    message: string,
+  ): Promise<void> {
+    const { data: existing, error: findError } = await supabase
+      .from('reminders')
+      .select('id')
+      .eq('task_id', taskId)
+      .eq('sent', false)
+      .limit(1)
+
+    if (findError) throw findError
+
+    if (existing?.length) {
+      const { error } = await supabase
+        .from('reminders')
+        .update({ remind_at: remindAt, message })
+        .eq('id', existing[0].id)
+      if (error) throw error
+      return
+    }
+
+    if (new Date(remindAt).getTime() > Date.now()) {
+      await this.create({ taskId, userId, remindAt, message })
+    }
+  }
 }
 
 export const reminderRepository = new ReminderRepository()

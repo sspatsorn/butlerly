@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const route = useRoute()
-const { lineUserId, tasks, loading, error, fetchTasks, fetchTodayTasks, updateStatus } = useTasks()
+const { lineUserId, tasks, loading, error, fetchTasks, fetchTodayTasks, updateStatus, updateTask } = useTasks()
 
 const filter = ref<'all' | 'today'>('today')
 const showHelp = ref(false)
@@ -153,6 +153,7 @@ watch(filter, loadTasks)
           :key="task.id"
           :task="task"
           @update-status="updateStatus"
+          @update-task="updateTask"
         />
       </div>
 

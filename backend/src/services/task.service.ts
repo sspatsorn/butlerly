@@ -204,6 +204,57 @@ export class TaskService {
 
     return `🔔 ตั้งเตือน "${task.title}"\n📅 ${formatted}`
   }
+
+  async updateTaskDetails(
+    userId: string,
+    taskId: string,
+    updates: { title?: string; deadline?: string | null },
+  ): Promise<string> {
+    const existing = await taskRepository.findById(taskId, userId)
+    if (!existing) {
+      return '❌ ไม่พบงานนี้ค่ะ'
+    }
+
+    if (updates.title !== undefined && !updates.title.trim()) {
+      return '❌ กรุณาระบุชื่องานค่ะ'
+    }
+
+    const payload: { title?: string; deadline?: string | null } = {}
+    if (updates.title !== undefined) payload.title = updates.title.trim()
+    if (updates.deadline !== undefined) payload.deadline = updates.deadline
+
+    const task = await taskRepository.update(taskId, userId, payload)
+    const title = task.title
+
+    if (updates.deadline !== undefined) {
+      if (task.deadline && new Date(task.deadline).getTime() > Date.now()) {
+        const formatted = formatThaiDateTime(new Date(task.deadline))
+        await reminderRepository.syncPendingForTask(
+          taskId,
+          userId,
+          task.deadline,
+          `⏰ ${BOT_NAME} เตือน: ${title}\n📅 ${formatted}`,
+        )
+      } else {
+        await reminderRepository.cancelPendingForTask(taskId)
+      }
+    } else if (updates.title !== undefined && task.deadline) {
+      const formatted = formatThaiDateTime(new Date(task.deadline))
+      await reminderRepository.syncPendingForTask(
+        taskId,
+        userId,
+        task.deadline,
+        `⏰ ${BOT_NAME} เตือน: ${title}\n📅 ${formatted}`,
+      )
+    }
+
+    const lines = [`✅ บันทึกการแก้ไข "${title}" แล้วค่ะ`]
+    if (task.deadline) {
+      lines.push(`📅 ${formatThaiDateTime(new Date(task.deadline))}`)
+      lines.push('🔔 อัปเดตการแจ้งเตือนตามเวลาใหม่แล้ว')
+    }
+    return lines.join('\n')
+  }
 }
 
 export const taskService = new TaskService()

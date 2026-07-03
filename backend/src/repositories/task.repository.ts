@@ -167,6 +167,23 @@ export class TaskRepository {
     return data
   }
 
+  async update(
+    id: string,
+    userId: string,
+    updates: { title?: string; deadline?: string | null },
+  ): Promise<Task> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
   async updateDeadline(id: string, userId: string, deadline: string): Promise<Task> {
     const { data, error } = await supabase
       .from('tasks')
