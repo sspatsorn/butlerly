@@ -187,6 +187,42 @@ function cleanTaskTitle(text: string): string {
   return title || ''
 }
 
+/** แยกรายละเอียดและ checklist จากข้อความหลายบรรทัด */
+export function parseTaskDetailsFromMessage(
+  text: string,
+  title: string,
+): { description?: string; checklist?: string[] } {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  if (lines.length <= 1) return {}
+
+  const checklist: string[] = []
+  const descParts: string[] = []
+  const titleNorm = title.trim().toLowerCase()
+
+  for (const line of lines) {
+    const bullet = line.match(/^(?:[-•*]\s*|\d+[.)]\s*)(.+)/)
+    if (bullet) {
+      checklist.push(bullet[1].trim())
+      continue
+    }
+
+    if (line.toLowerCase() === titleNorm || titleNorm.includes(line.toLowerCase())) continue
+    if (parseHourMinute(line) && /แจ้งเตือน|ตั้งเตือน|เตือน|เลื่อน|deadline/i.test(line)) continue
+    if (/^(แจ้งเตือน|ตั้งเตือน|ช่วยเตือน|เตือน)/i.test(line) && parseHourMinute(line)) continue
+
+    const cleaned = cleanTaskTitle(line)
+    if (!cleaned) continue
+    if (cleaned.toLowerCase() === titleNorm) continue
+
+    descParts.push(line)
+  }
+
+  return {
+    description: descParts.length ? descParts.join('\n') : undefined,
+    checklist: checklist.length ? checklist : undefined,
+  }
+}
+
 export function formatThaiDateTime(date: Date): string {
   return date.toLocaleString('th-TH', {
     timeZone: BANGKOK_TZ,

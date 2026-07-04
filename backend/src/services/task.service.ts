@@ -3,8 +3,8 @@ import { checklistRepository } from '../repositories/checklist.repository'
 import { reminderRepository } from '../repositories/reminder.repository'
 import { reminderService } from './reminder.service'
 import { BOT_NAME, getDashboardUrl } from '../config/bot-persona'
-import { formatThaiDateTime, parseScheduleFromText } from '../utils/datetime.parser'
-import type { Task, TaskWithChecklist } from '../types'
+import { formatThaiDateTime, parseScheduleFromText, parseTaskDetailsFromMessage } from '../utils/datetime.parser'
+import type { ChecklistItem, Task, TaskWithChecklist } from '../types'
 
 const STATUS_LABELS: Record<Task['status'], string> = {
   pending: '⏳ รอดำเนินการ',
@@ -33,12 +33,36 @@ export class TaskService {
     })
 
     const checklistItems = await checklistRepository.createMany(task.id, params.checklist ?? [])
+    const taskWithChecklist = { ...task, checklist_items: checklistItems }
 
     if (params.deadline) {
-      await this.syncReminderForDeadline(task.id, params.userId, task.title, params.deadline)
+      await this.syncReminderForDeadline(task.id, params.userId, params.deadline, taskWithChecklist)
     }
 
-    return { ...task, checklist_items: checklistItems }
+    return taskWithChecklist
+  }
+
+  formatReminderMessage(
+    task: Pick<Task, 'title' | 'description'> & { checklist_items?: ChecklistItem[] },
+    remindAt: Date | string,
+  ): string {
+    const lines = [`⏰ ${BOT_NAME} เตือน: ${task.title}`]
+    lines.push(`📅 ${formatThaiDateTime(new Date(remindAt))}`)
+
+    const desc = task.description?.trim()
+    if (desc && desc !== task.title.trim()) {
+      lines.push(`📝 ${desc}`)
+    }
+
+    const items = task.checklist_items ?? []
+    if (items.length > 0) {
+      lines.push('📋')
+      items.forEach((item, i) => {
+        lines.push(`${i + 1}. ${item.title}`)
+      })
+    }
+
+    return lines.join('\n')
   }
 
   formatTaskCreated(task: TaskWithChecklist): string {
@@ -151,7 +175,8 @@ export class TaskService {
     await taskRepository.updateDeadline(task.id, userId, newDeadline)
 
     if (new Date(newDeadline).getTime() > Date.now()) {
-      await this.syncReminderForDeadline(task.id, userId, task.title, newDeadline)
+      const full = await taskRepository.findByIdWithChecklist(task.id, userId)
+      await this.syncReminderForDeadline(task.id, userId, newDeadline, full ?? task)
       return `📅 เลื่อน "${task.title}" ไป ${formatThaiDateTime(new Date(newDeadline))}\n🔔 ตั้งแจ้งเตือนตามเวลาใหม่แล้ว`
     }
 
@@ -162,30 +187,34 @@ export class TaskService {
   private async syncReminderForDeadline(
     taskId: string,
     userId: string,
-    title: string,
     deadline: string,
+    taskHint?: Pick<Task, 'title' | 'description'> & { checklist_items?: ChecklistItem[] },
   ): Promise<void> {
     if (new Date(deadline).getTime() <= Date.now()) {
       await reminderRepository.cancelPendingForTask(taskId)
       return
     }
 
-    const formatted = formatThaiDateTime(new Date(deadline))
-    await reminderRepository.syncPendingForTask(
-      taskId,
-      userId,
-      deadline,
-      `⏰ ${BOT_NAME} เตือน: ${title}\n📅 ${formatted}`,
-    )
+    const task = taskHint ?? (await taskRepository.findByIdWithChecklist(taskId, userId))
+    if (!task) return
+
+    const message = this.formatReminderMessage(task, deadline)
+    await reminderRepository.syncPendingForTask(taskId, userId, deadline, message)
     reminderService.scheduleNearCheck(deadline)
   }
 
   async setReminder(
     userId: string,
     taskTitle: string | undefined,
-    options: { minutes?: number; remindAt?: string; sourceMessage?: string },
+    options: {
+      minutes?: number
+      remindAt?: string
+      sourceMessage?: string
+      description?: string
+      checklist?: string[]
+    },
   ): Promise<string> {
-    const { minutes, remindAt: remindAtIso, sourceMessage } = options
+    const { minutes, remindAt: remindAtIso, sourceMessage, description, checklist } = options
 
     let remindAt: Date
     if (remindAtIso) {
@@ -210,14 +239,22 @@ export class TaskService {
 
     let task = await taskRepository.findTaskSmart(userId, title || undefined)
 
+    const parsedDetails = sourceMessage
+      ? parseTaskDetailsFromMessage(sourceMessage, title)
+      : {}
+
+    let isNewTask = false
     if (!task && title) {
       const created = await this.createTask({
         userId,
         title: title.slice(0, 100),
+        description: description ?? parsedDetails.description,
+        checklist: checklist ?? parsedDetails.checklist,
         deadline: remindAt.toISOString(),
         sourceMessage,
       })
       task = created
+      isNewTask = true
     }
 
     if (!task) {
@@ -225,11 +262,20 @@ export class TaskService {
     }
 
     const formatted = formatThaiDateTime(remindAt)
+
+    if (isNewTask) {
+      return `🔔 ตั้งเตือน "${task.title}"\n📅 ${formatted}`
+    }
+
+    const full = await taskRepository.findByIdWithChecklist(task.id, userId)
+    const taskForMessage = full ?? { ...task, checklist_items: [] }
+    const message = this.formatReminderMessage(taskForMessage, remindAt)
+
     await reminderRepository.create({
       taskId: task.id,
       userId,
       remindAt: remindAt.toISOString(),
-      message: `⏰ ${BOT_NAME} เตือน: ${task.title}\n📅 ${formatted}`,
+      message,
     })
     reminderService.scheduleNearCheck(remindAt.toISOString())
 
@@ -263,12 +309,14 @@ export class TaskService {
 
     if (updates.deadline !== undefined) {
       if (task.deadline && new Date(task.deadline).getTime() > Date.now()) {
-        await this.syncReminderForDeadline(taskId, userId, title, task.deadline)
+        const full = await taskRepository.findByIdWithChecklist(taskId, userId)
+        await this.syncReminderForDeadline(taskId, userId, task.deadline, full ?? task)
       } else {
         await reminderRepository.cancelPendingForTask(taskId)
       }
     } else if (updates.title !== undefined && task.deadline) {
-      await this.syncReminderForDeadline(taskId, userId, title, task.deadline)
+      const full = await taskRepository.findByIdWithChecklist(taskId, userId)
+      await this.syncReminderForDeadline(taskId, userId, task.deadline, full ?? task)
     }
 
     const lines = [`✅ บันทึกการแก้ไข "${title}" แล้วค่ะ`]

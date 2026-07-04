@@ -17,6 +17,10 @@ export function createApp() {
   app.use(express.json())
   app.use('/api', apiRoutes)
 
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', service: 'linetask-backend' })
+  })
+
   return app
 }
 

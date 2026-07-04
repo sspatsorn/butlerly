@@ -39,6 +39,18 @@ export class TaskRepository {
     return data
   }
 
+  async findByIdWithChecklist(id: string, userId: string): Promise<TaskWithChecklist | null> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*, checklist_items(*)')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single()
+
+    if (error && error.code !== 'PGRST116') throw error
+    return data as TaskWithChecklist | null
+  }
+
   async findByTitleFuzzy(userId: string, title: string): Promise<Task | null> {
     const { data, error } = await supabase
       .from('tasks')

@@ -23,7 +23,8 @@ const HELP_MESSAGE = `💁‍♀️ ${BOT_NAME} - เลขาส่วนตั
 • "งานนี้เสร็จแล้ว" → ทำเครื่องหมายเสร็จ
 • "เลื่อนไปพรุ่งนี้" → เลื่อน Deadline
 • "เตือนอีก 30 นาที" → ตั้งเตือน
-• "แจ้งเตือนโทรหาแฟน 21:00 วันนี้" → ตั้งเตือนตามวันเวลา
+• "แจ้งเตือนทำงานเวลา 21:00 วันนี้" → ตั้งเตือนตามวันเวลา
+• ส่งหลายบรรทัด (ชื่องาน + รายละเอียด) → รายละเอียดจะตามไปในแจ้งเตือน
 • "ยกเลิก" → ยกเลิกงาน (เลือกจากหมายเลข)
 • "สมัคร" → สมัครสมาชิก`
 
@@ -141,6 +142,8 @@ export class ConversationService {
           minutes: intent.reminderMinutes,
           remindAt: intent.remindAt,
           sourceMessage: originalMessage,
+          description: intent.description,
+          checklist: intent.checklist,
         })
 
       case 'help':
