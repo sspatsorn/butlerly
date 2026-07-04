@@ -4,8 +4,12 @@ import { lineService } from './line.service'
 
 /** ส่งได้ถ้าเลยเวลาไม่เกิน 3 นาที (กัน Render sleep แล้วยิงเตือนค้างทีเดียว) */
 const GRACE_AFTER_MS = 3 * 60 * 1000
+/** ตั้ง timer เพิ่มเมื่อเตือนภายใน 15 นาที (กันพลาดช่วงที่ cron 10 วินาที) */
+const NEAR_TERM_MS = 15 * 60 * 1000
 
 export class ReminderService {
+  private nearTermTimer: ReturnType<typeof setTimeout> | null = null
+
   start(): void {
     void this.processPendingReminders()
 
@@ -15,7 +19,19 @@ export class ReminderService {
     console.log('⏰ Reminder scheduler started (every 10 seconds, 3-min grace window)')
   }
 
-  private async processPendingReminders(): Promise<void> {
+  /** เรียกหลังตั้ง/เลื่อนเตือนใกล้ๆ — ยิงตรงเวลาแม้ cron พลาดรอบ */
+  scheduleNearCheck(remindAtIso: string): void {
+    const delay = new Date(remindAtIso).getTime() - Date.now()
+    if (delay <= 0 || delay > NEAR_TERM_MS) return
+
+    if (this.nearTermTimer) clearTimeout(this.nearTermTimer)
+    this.nearTermTimer = setTimeout(() => {
+      this.nearTermTimer = null
+      void this.processPendingReminders()
+    }, delay + 1000)
+  }
+
+  async processPendingReminders(): Promise<void> {
     try {
       const now = Date.now()
       const nowIso = new Date(now).toISOString()

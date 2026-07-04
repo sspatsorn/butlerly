@@ -1,6 +1,7 @@
 import { taskRepository } from '../repositories/task.repository'
 import { checklistRepository } from '../repositories/checklist.repository'
 import { reminderRepository } from '../repositories/reminder.repository'
+import { reminderService } from './reminder.service'
 import { BOT_NAME, getDashboardUrl } from '../config/bot-persona'
 import { formatThaiDateTime, parseScheduleFromText } from '../utils/datetime.parser'
 import type { Task, TaskWithChecklist } from '../types'
@@ -32,6 +33,11 @@ export class TaskService {
     })
 
     const checklistItems = await checklistRepository.createMany(task.id, params.checklist ?? [])
+
+    if (params.deadline) {
+      await this.syncReminderForDeadline(task.id, params.userId, task.title, params.deadline)
+    }
+
     return { ...task, checklist_items: checklistItems }
   }
 
@@ -143,7 +149,35 @@ export class TaskService {
     }
 
     await taskRepository.updateDeadline(task.id, userId, newDeadline)
+
+    if (new Date(newDeadline).getTime() > Date.now()) {
+      await this.syncReminderForDeadline(task.id, userId, task.title, newDeadline)
+      return `📅 เลื่อน "${task.title}" ไป ${formatThaiDateTime(new Date(newDeadline))}\n🔔 ตั้งแจ้งเตือนตามเวลาใหม่แล้ว`
+    }
+
+    await reminderRepository.cancelPendingForTask(task.id)
     return `📅 เลื่อน "${task.title}" ไป ${formatThaiDateTime(new Date(newDeadline))}`
+  }
+
+  private async syncReminderForDeadline(
+    taskId: string,
+    userId: string,
+    title: string,
+    deadline: string,
+  ): Promise<void> {
+    if (new Date(deadline).getTime() <= Date.now()) {
+      await reminderRepository.cancelPendingForTask(taskId)
+      return
+    }
+
+    const formatted = formatThaiDateTime(new Date(deadline))
+    await reminderRepository.syncPendingForTask(
+      taskId,
+      userId,
+      deadline,
+      `⏰ ${BOT_NAME} เตือน: ${title}\n📅 ${formatted}`,
+    )
+    reminderService.scheduleNearCheck(deadline)
   }
 
   async setReminder(
@@ -197,6 +231,7 @@ export class TaskService {
       remindAt: remindAt.toISOString(),
       message: `⏰ ${BOT_NAME} เตือน: ${task.title}\n📅 ${formatted}`,
     })
+    reminderService.scheduleNearCheck(remindAt.toISOString())
 
     if (!task.deadline) {
       await taskRepository.updateDeadline(task.id, userId, remindAt.toISOString())
@@ -228,24 +263,12 @@ export class TaskService {
 
     if (updates.deadline !== undefined) {
       if (task.deadline && new Date(task.deadline).getTime() > Date.now()) {
-        const formatted = formatThaiDateTime(new Date(task.deadline))
-        await reminderRepository.syncPendingForTask(
-          taskId,
-          userId,
-          task.deadline,
-          `⏰ ${BOT_NAME} เตือน: ${title}\n📅 ${formatted}`,
-        )
+        await this.syncReminderForDeadline(taskId, userId, title, task.deadline)
       } else {
         await reminderRepository.cancelPendingForTask(taskId)
       }
     } else if (updates.title !== undefined && task.deadline) {
-      const formatted = formatThaiDateTime(new Date(task.deadline))
-      await reminderRepository.syncPendingForTask(
-        taskId,
-        userId,
-        task.deadline,
-        `⏰ ${BOT_NAME} เตือน: ${title}\n📅 ${formatted}`,
-      )
+      await this.syncReminderForDeadline(taskId, userId, title, task.deadline)
     }
 
     const lines = [`✅ บันทึกการแก้ไข "${title}" แล้วค่ะ`]
