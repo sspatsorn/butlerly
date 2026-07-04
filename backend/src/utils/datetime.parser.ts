@@ -240,9 +240,44 @@ export function isReminderLikeMessage(text: string): boolean {
   const lower = text.toLowerCase()
   return /แจ้งเตือน|สร้างแจ้งเตือน|ตั้งเตือน|ช่วยเตือน|^เตือน/.test(lower)
     || /(?:อีก|ใน)\s*\d+\s*(?:นาที|ชม\.?|ชั่วโมง)/.test(lower)
+    || /(?:เตือน|แจ้ง)(?:ใหม่|อีก(?:ครั้ง)?)|บอกอีก/.test(lower)
     || /\d{1,2}[:\.]\d{2}\s*น\.?/.test(lower)
     || /\d{1,2}\s*ทุ่ม/.test(lower)
     || /[หนึ่งสองสามสี่ห้าหกเจ็ดแปดเก้าสิบยี่เอ็ด]+\s*ทุ่ม/.test(lower)
+}
+
+/** เตือนซ้ำหลังได้รับแจ้งเตือนแล้ว — "เตือนอีก 5 นาที", "แจ้งใหม่" */
+export function parseSnoozeFromText(
+  text: string,
+  reference = new Date(),
+): { minutes: number; remindAt: Date } | null {
+  const lower = text.trim().toLowerCase()
+
+  const relativeMinutes = parseRelativeMinutes(text)
+  if (relativeMinutes !== null && /เตือน|แจ้ง|บอกอีก|อีก|ใน/.test(lower)) {
+    return {
+      minutes: relativeMinutes,
+      remindAt: new Date(reference.getTime() + relativeMinutes * 60 * 1000),
+    }
+  }
+
+  const relativeHours = parseRelativeHours(text)
+  if (relativeHours !== null && /เตือน|แจ้ง|บอกอีก|อีก|ใน/.test(lower)) {
+    return {
+      minutes: relativeHours * 60,
+      remindAt: new Date(reference.getTime() + relativeHours * 60 * 60 * 1000),
+    }
+  }
+
+  if (/^(?:เตือน|แจ้ง)ใหม่$|เตือนอีกครั้ง|แจ้งอีกครั้ง/.test(lower)) {
+    const minutes = 5
+    return {
+      minutes,
+      remindAt: new Date(reference.getTime() + minutes * 60 * 1000),
+    }
+  }
+
+  return null
 }
 
 export function parseScheduleFromText(text: string, reference = new Date()): ParsedSchedule | null {

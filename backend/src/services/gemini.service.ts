@@ -55,6 +55,7 @@ JSON format:
 - "งานนี้เสร็จแล้ว" หรือ "เสร็จแล้ว" อย่างเดียว = complete_task โดยไม่ต้องใส่ชื่องาน
 - "เลื่อนไปพรุ่งนี้" อย่างเดียว = reschedule_task งานล่าสุด
 - "เตือนอีก 30 นาที" อย่างเดียว = set_reminder งานล่าสุด, ใส่ reminderMinutes
+- หลังได้รับแจ้งเตือนแล้ว "เตือนอีก 5 นาที" / "แจ้งใหม่" = set_reminder งานล่าสุด (snooze)
 - ถ้ามีเวลาเฉพาะ (21:00, พรุ่งนี้ 9 โมง) ให้ใส่ remindAt แทน reminderMinutes`
 
 export class GeminiService {

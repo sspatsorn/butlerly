@@ -3,7 +3,7 @@ import { checklistRepository } from '../repositories/checklist.repository'
 import { reminderRepository } from '../repositories/reminder.repository'
 import { reminderService } from './reminder.service'
 import { BOT_NAME, getDashboardUrl } from '../config/bot-persona'
-import { formatThaiDateTime, parseScheduleFromText, parseTaskDetailsFromMessage } from '../utils/datetime.parser'
+import { formatThaiDateTime, parseScheduleFromText, parseSnoozeFromText, parseTaskDetailsFromMessage, isReminderLikeMessage } from '../utils/datetime.parser'
 import type { ChecklistItem, Task, TaskWithChecklist } from '../types'
 
 const STATUS_LABELS: Record<Task['status'], string> = {
@@ -232,12 +232,20 @@ export class TaskService {
     let title = taskTitle?.trim() ?? ''
     title = title.replace(/^(ช่วย)?เตือน(?:ฉัน|ผม)?(?:อีก)?\s*\d+\s*นาที\s*/i, '').trim()
 
+    const isSnooze = minutes !== undefined || (sourceMessage ? !!parseSnoozeFromText(sourceMessage) : false)
+
     if (!title && sourceMessage) {
       const schedule = parseScheduleFromText(sourceMessage)
-      title = schedule?.taskTitle ?? sourceMessage.trim()
+      if (schedule?.taskTitle) {
+        title = schedule.taskTitle
+      } else if (!isSnooze && !isReminderLikeMessage(sourceMessage)) {
+        title = sourceMessage.trim().slice(0, 100)
+      }
     }
 
-    let task = await taskRepository.findTaskSmart(userId, title || undefined)
+    let task = title
+      ? await taskRepository.findTaskSmart(userId, title)
+      : await taskRepository.findLatestPending(userId)
 
     const parsedDetails = sourceMessage
       ? parseTaskDetailsFromMessage(sourceMessage, title)
@@ -258,7 +266,9 @@ export class TaskService {
     }
 
     if (!task) {
-      return '📭 ไม่มีงานให้ตั้งเตือน ลองส่งข้อความงานมาก่อนนะคะ'
+      return isSnooze
+        ? '📭 ไม่มีงานค้างให้เตือนซ้ำค่ะ ลองพิมพ์ "งานอะไรบ้าง" เพื่อดูรายการ'
+        : '📭 ไม่มีงานให้ตั้งเตือน ลองส่งข้อความงานมาก่อนนะคะ'
     }
 
     const formatted = formatThaiDateTime(remindAt)
@@ -279,11 +289,10 @@ export class TaskService {
     })
     reminderService.scheduleNearCheck(remindAt.toISOString())
 
-    if (!task.deadline) {
-      await taskRepository.updateDeadline(task.id, userId, remindAt.toISOString())
-    }
+    await taskRepository.updateDeadline(task.id, userId, remindAt.toISOString())
 
-    return `🔔 ตั้งเตือน "${task.title}"\n📅 ${formatted}`
+    const snoozeNote = isSnooze ? '\n💡 เตือนซ้ำงานล่าสุด' : ''
+    return `🔔 ตั้งเตือน "${task.title}"\n📅 ${formatted}${snoozeNote}`
   }
 
   async updateTaskDetails(

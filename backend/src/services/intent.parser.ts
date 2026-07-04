@@ -1,5 +1,5 @@
 import type { ParsedIntent } from '../types'
-import { isReminderLikeMessage, parseRescheduleFromText, parseScheduleFromText } from '../utils/datetime.parser'
+import { isReminderLikeMessage, parseRescheduleFromText, parseScheduleFromText, parseSnoozeFromText } from '../utils/datetime.parser'
 
 export function parseRuleBasedIntent(message: string): ParsedIntent | null {
   const text = message.trim()
@@ -45,6 +45,16 @@ export function parseRuleBasedIntent(message: string): ParsedIntent | null {
       }
     }
     return { intent: 'reschedule_task' }
+  }
+
+  // เตือนซ้ำหลังแจ้งเตือนแล้ว — "เตือนอีก 5 นาที", "แจ้งใหม่"
+  const snooze = parseSnoozeFromText(text)
+  if (snooze) {
+    return {
+      intent: 'set_reminder',
+      reminderMinutes: snooze.minutes,
+      remindAt: snooze.remindAt.toISOString(),
+    }
   }
 
   // ตั้งเตือน — วันเวลาเฉพาะ หรือ อีก X นาที/ชั่วโมง
